@@ -6,7 +6,7 @@ on:
   pull_request:
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -16,17 +16,18 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
           # Needed for tag history
           fetch-depth: 0
       - run: git fetch --tags
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
 
       - name: Setup Node
-        uses: actions/setup-node@v6.3.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: 'pnpm'
@@ -41,41 +42,36 @@ jobs:
         run: pnpm run preflight
 
       - name: Verify publish-skills (Dry Run)
-        run: pnpm --filter serving run publish-skills --dry-run
+        run: pnpm run publish-skills --dry-run
+
 
       - name: Compare built (post-macro) guides 
+        env:
+          BASE_REF: ${{ github.base_ref || github.event.repository.default_branch }}
         run: |
-          pnpm --filter serving build
-          REPORT_OUTPUT_PATH=/tmp/built-guides-diff.md node serving/scripts/compare-built-guides.ts --base-ref "origin/${{ github.base_ref || github.event.repository.default_branch }}"
+          pnpm run build
+          REPORT_OUTPUT_PATH=/tmp/built-guides-diff.md node src/build/compare-built-guides.ts --base-ref "origin/${BASE_REF}"
           if [ -f /tmp/built-guides-diff.md ]; then
             cat /tmp/built-guides-diff.md >> $GITHUB_STEP_SUMMARY
           fi
 
       # Fail if any changes were written to any source files or generated untracked files
-      - run: git add -A && git diff --cached --exit-code -- ':!README.mwg.md'
-
-      #  TODO(paulirish): restore this after fixing:
-      #      fatal: You are not currently on a branch. To push the history leading to the current (detached HEAD) state now, use git push origin HEAD:<name-of-remote-branch>       
-      #
-      # - name: Generate guides diagram and commit
-      #   run: |
-      #     node guides/guide-features-diagram.mjs
-      #     git config user.name "github-actions[bot]"
-      #     git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-      #     git add guides/features-and-use-cases.md
+      - run: git add -A && git diff --cached --exit-code
 
   browser:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - run: git fetch --tags
 
       - name: Setup pnpm
-        uses: pnpm/action-setup@v5
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
 
       - name: Setup Node
-        uses: actions/setup-node@v6.3.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: 'pnpm'
@@ -85,10 +81,10 @@ jobs:
 
       - name: Get Playwright version
         id: playwright-version
-        run: echo "version=$(pnpm list --filter eval-view --depth 0 playwright --json | jq -r '.[0].devDependencies.playwright.version')" >> $GITHUB_OUTPUT
+        run: echo "version=$(pnpm list --depth 0 playwright --json | jq -r '.[0].devDependencies.playwright.version')" >> $GITHUB_OUTPUT
 
       - name: Cache Playwright Browsers
-        uses: actions/cache@v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
@@ -100,11 +96,11 @@ jobs:
 
       - name: Install Playwright System Dependencies
         if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm --filter eval-view exec playwright install-deps
+        run: pnpm exec playwright install-deps
 
       - name: Playwright E2E Tests
-        run: pnpm --filter eval-view run test:e2e
+        run: pnpm run test:e2e
 
       - name: Test Grader Calibration
         # Ensuring playwright is happy
-        run: node bin/gd.ts dev guides/user-experience/adapt-scrollbar-to-contrast-preferences/ --test-grader
+        run: node bin/gd.ts dev guides/ui-behaviors/directional-navigation-transitions/ --test-grader

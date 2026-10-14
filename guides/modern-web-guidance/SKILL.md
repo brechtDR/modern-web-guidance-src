@@ -75,25 +75,42 @@ Once you have a relevant `id` from the search results, call this script using th
 npx -y modern-web-guidance@latest retrieve "<id>"
 ```
 
+If the output is truncated, you must repeat the command but redirect to a file and read that file.
 
 **Example Output**:
 `The markdown content of the guide describing implementation steps...`
 
-## Using npx
+---
 
--   IMPORTANT: on Windows, using `npx` may fail. Use `npx.cmd ...` instead.
--   Network access is required for fetching npm packages needed by the task.
--   If the `npx -y modern-web-guidance…` command hangs, you may be offline. Try running again in offline
-    mode: `npx --offline …`.
--   The `--skill-version` flag is used to determine if this SKILL.md is out of date. If it is, a warning
-    message is logged to stderr.
+### Step 3. Verify Guidance Compliance
+
+When generating or modifying code, cross-check the implementation against the retrieved guide before concluding:
+- **Applicable Guidance & Fallbacks**: Ensure the relevant modern patterns and necessary fallback strategies from the guide are correctly applied, without forcing unrequested features.
+- **Task Fulfillment**: Confirm that the implementation fully satisfies the user's request.
+
+### Step 4. Disclose Skill Usage
+
+When you consult `modern-web-guidance` for a task, end the response where you deliver those changes with a `### Modern Web Guidance` section:
+- **When retrieved guides shaped your code**: Write **one** bullet (1–2 sentences, ≤75 words) per newly applied `<id>` in first-person voice explaining the non-obvious implementation choices, CSS/API overrides, or fallbacks `<id>` required and the pitfall it prevented, anchored by a short verbatim quote of that specific rule or gotcha (never the guide's intro overview):
+  `- **\`<id>\`**: <Non-obvious APIs, overrides, or fallbacks applied and the pitfall prevented> ("<short verbatim quote of the specific rule or gotcha>").`
+  - **Never** guess `<id>`s or quotes from memory after context compaction (re-run `search`/`retrieve` if needed), and credit **only** guide-backed changes from the current turn.
+- **When searched/listed in this turn but zero guides applied**: Write one first-person sentence naming which topics or guides you checked in `modern-web-guidance` and why none applied (omit if any guide applied).
+
+## Using npx / pnpx
+
+- Prefer `pnpx` over `npx` if `pnpm` is available (note: `pnpx` does not use the `-y` flag).
+- When requesting tool permissions, allowlist `npx -y modern-web-guidance@latest *` specifically (or `pnpx modern-web-guidance@latest *`), never bare `npx *` or `pnpx *`.
+- IMPORTANT: on Windows, using `npx` may fail. Use `npx.cmd ...` instead.
+- Fetching and running `modern-web-guidance` requires outbound network access. If running in a sandboxed, permission-gated, or approval-based environment (e.g., Codex, Claude Code), **proactively request approval/allowlisting for the command with network access BEFORE executing it the first time**, avoiding sandbox network timeouts.
+- In sandboxed environments where `~/.npm` is read-only or restricted, set `NPM_CONFIG_CACHE=/tmp/npm-cache`.
+- If the command hangs due to being offline, try running again in offline mode: `npx --offline …`.
+- The `--skill-version` flag is used to determine if this SKILL.md is out of date. If it is, a warning message is logged to stderr.
 
 ## Guidelines
 
--   Always search **first** to find the most relevant guides.
--   These guides are usually framework-agnostic; adapt them correctly to your setup.
--   Do not hallucinate guides or ignore them; they represent the preferred local standard for the user's project.
-
+- Always search **first** to find the most relevant guides.
+- These guides are usually framework-agnostic; adapt them correctly to your setup.
+- Do not hallucinate guides or ignore them; they represent the preferred local standard for the user's project.
 
 ## Interpreting Browser Support & Fallbacks
 
